@@ -1,0 +1,18 @@
+PONG CORRIGIDO
+
+Extraia o ZIP e abra index.html no Chrome, Edge ou Firefox com WebGL 2.
+Mantenha index.html, main.js e m3.js na mesma pasta. Nao precisa instalar dependencias.
+Esquerda: W sobe, S desce. Direita: seta para cima sobe, seta para baixo desce.
+Teto e chao rebatem. Sair pela lateral marca ponto para o adversario.
+Apos o gol, bola e barras voltam ao centro; o saque ocorre apos 0,8 segundo.
+Reiniciar partida zera o placar.
+
+Para atualizar seu projeto: substitua index.html e main.js na pasta pong-incompleto.
+m3.js foi mantido sem alteracoes. Nenhuma alteracao foi enviada ao GitHub.
+Mantidos WebGL 2, shaders, geometria, cores e matrizes do projeto original.
+Movimento por tempo decorrido, limites das barras e colisao circulo/retangulo.
+
+Verificacao: testes de logica em Node para teclado, limites, rebotes e gols.
+A renderizacao em navegador nao foi verificada neste ambiente.
+
+Origem: https://github.com/martinslemosana/cg-02-2026/tree/main/pong-incompleto
