@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Robô Animado com POO</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      font-family: Arial, sans-serif;
+      color: #eafaff;
+      background: radial-gradient(circle at 50% 20%, #17435e, #06131e 68%);
+    }
+    main { width: min(94vw, 760px); text-align: center; }
+    h1 { margin: 16px 0 4px; font-size: clamp(1.4rem, 4vw, 2rem); }
+    p { margin: 6px 0 12px; color: #b6ddea; }
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      border: 2px solid #5de2ff;
+      border-radius: 18px;
+      background: rgba(4, 17, 28, 0.78);
+      box-shadow: 0 0 30px rgba(93, 226, 255, 0.2);
+    }
+    button {
+      margin: 12px 0 18px;
+      padding: 10px 22px;
+      border: 0;
+      border-radius: 999px;
+      font-weight: bold;
+      cursor: pointer;
+      color: #06202c;
+      background: #5de2ff;
+    }
+    button:hover { background: #9bedff; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Robô Animado — POO</h1>
+    <p>Composição, herança, encapsulamento e polimorfismo em JavaScript.</p>
+    <canvas id="tela" width="760" height="620"></canvas>
+    <button id="controle">Pausar animação</button>
+  </main>
+
+  <script>
+    'use strict';
+
+    // Classe utilitária responsável pelas formas gráficas.
+    class Desenhista {
+      static retangulo(ctx, x, y, largura, altura, raio, cor) {
+        ctx.beginPath();
+        ctx.roundRect(x, y, largura, altura, raio);
+        ctx.fillStyle = cor;
+        ctx.fill();
+        ctx.strokeStyle = '#092231';
+        ctx.lineWidth = 5;
+        ctx.stroke();
+      }
+
+      static circulo(ctx, x, y, raio, cor) {
+        ctx.beginPath();
+        ctx.arc(x, y, raio, 0, Math.PI * 2);
+        ctx.fillStyle = cor;
+        ctx.fill();
+        ctx.strokeStyle = '#092231';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+      }
+    }
+
+    // Superclasse: define o comportamento comum a qualquer parte do robô.
+    class ParteRobo {
+      constructor(x, y, cor) {
+        this.x = x;
+        this.y = y;
+        this.cor = cor;
+        this.angulo = 0;
+      }
+
+      atualizar(tempo) {
+        // Será sobrescrito pelas subclasses (polimorfismo).
+      }
+
+      desenhar(ctx) {
+        throw new Error('A subclasse precisa implementar desenhar().');
+      }
+    }
+
+    class Corpo extends ParteRobo {
+      constructor(x, y) {
+        super(x, y, '#416c83');
+        this.deslocamentoY = 0;
+      }
+
+      atualizar(tempo) {
+        this.deslocamentoY = Math.sin(tempo * 2.1) * 10;
+        this.angulo = Math.sin(tempo * 1.2) * 0.045;
+      }
+
+      desenhar(ctx) {
+        Desenhista.retangulo(ctx, -95, -105, 190, 220, 30, this.cor);
+        Desenhista.retangulo(ctx, -57, -51, 114, 88, 18, '#102f42');
+
+        ['#ff5a6b', '#ffe45e', '#59f59b'].forEach((cor, indice) => {
+          Desenhista.circulo(ctx, -31 + indice * 31, -18, 8, cor);
+        });
+      }
+    }
+
+    class Cabeca extends ParteRobo {
+      constructor(x, y) {
+        super(x, y, '#80a7ba');
+        this.deslocamentoX = 0;
+        this.piscando = false;
+        this.inclinacaoAntena = 0;
+      }
+
+      atualizar(tempo) {
+        this.deslocamentoX = Math.sin(tempo * 3.1) * 10;
+        this.angulo = Math.sin(tempo * 1.8) * 0.12;
+        this.piscando = Math.sin(tempo * 1.7) > 0.94;
+        this.inclinacaoAntena = Math.sin(tempo * 4) * 8;
+      }
+
+      desenhar(ctx) {
+        ctx.save();
+        ctx.translate(this.x + this.deslocamentoX, this.y);
+        ctx.rotate(this.angulo);
+
+        Desenhista.retangulo(ctx, -73, -55, 146, 105, 28, this.cor);
+
+        ctx.strokeStyle = '#79efff';
+        ctx.lineWidth = 7;
+        ctx.beginPath();
+        ctx.moveTo(0, -55);
+        ctx.lineTo(this.inclinacaoAntena, -88);
+        ctx.stroke();
+        Desenhista.circulo(ctx, this.inclinacaoAntena, -96, 10, '#ff5877');
+
+        ctx.fillStyle = '#5df4ff';
+        if (this.piscando) {
+          ctx.fillRect(-46, -14, 27, 5);
+          ctx.fillRect(19, -14, 27, 5);
+        } else {
+          Desenhista.circulo(ctx, -32, -12, 12, '#5df4ff');
+          Desenhista.circulo(ctx, 32, -12, 12, '#5df4ff');
+        }
+
+        ctx.strokeStyle = '#163547';
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.arc(0, 8, 30, 0.25, Math.PI - 0.25);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    // Classe-base compartilhada por braços e pernas.
+    class Membro extends ParteRobo {
+      constructor(x, y, comprimento, largura, cor, velocidade, amplitude, fase = 0) {
+        super(x, y, cor);
+        this.comprimento = comprimento;
+        this.largura = largura;
+
+        // Propriedades internas controlam a animação de cada objeto.
+        this.velocidade = velocidade;
+        this.amplitude = amplitude;
+        this.fase = fase;
+      }
+
+      atualizar(tempo) {
+        this.angulo = Math.sin(tempo * this.velocidade + this.fase) * this.amplitude;
+      }
+
+      desenhar(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.angulo);
+        Desenhista.retangulo(
+          ctx,
+          -this.largura / 2,
+          0,
+          this.largura,
+          this.comprimento,
+          this.largura / 2,
+          this.cor
+        );
+        Desenhista.circulo(ctx, 0, this.comprimento, this.largura * 0.62, '#5ce1e6');
+        ctx.restore();
+      }
+    }
+
+    class Braco extends Membro {
+      constructor(x, y, velocidade, amplitude, fase = 0) {
+        super(x, y, 145, 35, '#7894a5', velocidade, amplitude, fase);
+      }
+    }
+
+    class Perna extends Membro {
+      constructor(x, y, fase = 0) {
+        super(x, y, 138, 39, '#557d93', 3, 0.46, fase);
+      }
+    }
+
+    // A classe Robo usa composição: contém objetos que representam suas partes.
+    class Robo {
+      constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.corpo = new Corpo(0, 0);
+        this.cabeca = new Cabeca(0, -195);
+        this.bracoEsquerdo = new Braco(-100, -72, 3.6, 0.72);
+        this.bracoDireito = new Braco(100, -72, 2.5, 0.9, Math.PI);
+        this.pernaEsquerda = new Perna(-48, 105);
+        this.pernaDireita = new Perna(48, 105, Math.PI);
+
+        this.partes = [
+          this.corpo,
+          this.cabeca,
+          this.bracoEsquerdo,
+          this.bracoDireito,
+          this.pernaEsquerda,
+          this.pernaDireita
+        ];
+      }
+
+      atualizar(tempo) {
+        // Polimorfismo: a mesma chamada executa um movimento diferente em cada objeto.
+        this.partes.forEach(parte => parte.atualizar(tempo));
+      }
+
+      desenhar(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y + this.corpo.deslocamentoY);
+        ctx.rotate(this.corpo.angulo);
+
+        // Ordem de desenho: membros atrás, tronco e cabeça à frente.
+        this.pernaEsquerda.desenhar(ctx);
+        this.pernaDireita.desenhar(ctx);
+        this.bracoEsquerdo.desenhar(ctx);
+        this.bracoDireito.desenhar(ctx);
+        this.corpo.desenhar(ctx);
+
+        Desenhista.retangulo(ctx, -24, -135, 48, 40, 10, '#6f91a5');
+        this.cabeca.desenhar(ctx);
+        ctx.restore();
+      }
+    }
+
+    // Cena controla o Canvas, o tempo e o laço principal da animação.
+    class Cena {
+      constructor(canvas) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.robo = new Robo(canvas.width / 2, 345);
+        this.executando = true;
+        this.tempoPausado = 0;
+        this.inicioPausa = 0;
+        this.animar = this.animar.bind(this);
+      }
+
+      desenharCenario() {
+        const ctx = this.ctx;
+        const chaoY = 570;
+
+        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        ctx.strokeStyle = '#28627c';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(75, chaoY);
+        ctx.lineTo(this.canvas.width - 75, chaoY);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.ellipse(this.canvas.width / 2, chaoY, 115, 18, 0, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+        ctx.fill();
+      }
+
+      alternarPausa() {
+        this.executando = !this.executando;
+
+        if (this.executando) {
+          this.tempoPausado += performance.now() - this.inicioPausa;
+          requestAnimationFrame(this.animar);
+        } else {
+          this.inicioPausa = performance.now();
+        }
+
+        return this.executando;
+      }
+
+      animar(tempoAtual) {
+        if (!this.executando) return;
+
+        const tempo = (tempoAtual - this.tempoPausado) / 1000;
+        this.desenharCenario();
+        this.robo.atualizar(tempo);
+        this.robo.desenhar(this.ctx);
+        requestAnimationFrame(this.animar);
+      }
+
+      iniciar() {
+        requestAnimationFrame(this.animar);
+      }
+    }
+
+    const cena = new Cena(document.getElementById('tela'));
+    const botao = document.getElementById('controle');
+
+    botao.addEventListener('click', () => {
+      const executando = cena.alternarPausa();
+      botao.textContent = executando ? 'Pausar animação' : 'Continuar animação';
+    });
+
+    cena.iniciar();
+  </script>
+</body>
+</html>
